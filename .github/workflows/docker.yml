@@ -1,0 +1,19 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
+        run: |
+          docker build -t ghcr.io/ramadhanadam/deepfake-rag:v2 .
+          docker push ghcr.io/ramadhanadam/deepfake-rag:v2

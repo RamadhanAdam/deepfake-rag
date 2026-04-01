@@ -31,12 +31,11 @@ export default function App() {
     if (!image) return
     setLoading(true)
     setError(null)
-
     const formData = new FormData()
     formData.append('file', image)
-
     try {
-      const res = await fetch('/predict', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const res = await fetch(`${API_URL}/predict`, {
         method: 'POST',
         body: formData
       })
@@ -56,7 +55,6 @@ export default function App() {
         <h1>DEEPFAKE<span>DETECTOR</span></h1>
         <p className="subtitle">CNN + RAG powered forensic analysis</p>
       </header>
-
       <div
         className={`dropzone ${dragging ? 'dragging' : ''} ${preview ? 'has-image' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
@@ -80,9 +78,7 @@ export default function App() {
           onChange={(e) => handleFile(e.target.files[0])}
         />
       </div>
-
       {error && <p className="error">{error}</p>}
-
       <button
         className="detect-btn"
         onClick={handleDetect}
@@ -90,7 +86,6 @@ export default function App() {
       >
         {loading ? 'ANALYSING...' : 'DETECT'}
       </button>
-
       {result && (
         <div className={`result-card ${result.label}`}>
           <div className="result-header">

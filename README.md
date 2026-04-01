@@ -2,6 +2,14 @@
 
 A deepfake detection system combining an **Xception CNN** classifier with a **Retrieval-Augmented Generation (RAG)** pipeline to produce grounded forensic explanations for every prediction — built from scratch without LangChain.
 
+---
+
+## Live Demo
+
+**Frontend**: https://deepfake-rag.vercel.app  
+**Backend API**: https://deepfake-rag.onrender.com
+
+> The backend runs on a free tier and may take ~30 seconds to wake up on first request.
 
 ---
 
@@ -19,6 +27,8 @@ A deepfake is a face image or video generated or manipulated by a Generative Adv
 - **Discriminator** — tries to detect fakes
 
 They train together until the generator fools the discriminator. The result looks real to the human eye but leaves behind subtle artifacts from the generation process.
+
+---
 
 ## GAN Artifacts This System Detects
 
@@ -53,27 +63,43 @@ The knowledge base can be updated at any time by adding new papers and rebuildin
 ---
 
 ## Project Structure
-
 ```
 deepfake_rag/
+├── api.py                       # FastAPI backend
+├── predict.py                   # Xception CNN inference
+├── rag.py                       # RAG pipeline
+├── train.py                     # model training script
+├── main.py                      # CLI entry point
+├── requirements.txt
+├── Dockerfile
+├── frontend/
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json
+│   └── src/
+│       ├── App.jsx
+│       ├── App.css
+│       ├── index.css
+│       └── main.jsx
 ├── knowledge_base/
 │   ├── download_papers.py       # download research papers
 │   ├── build_knowledge_base.py  # chunk, embed, build FAISS index
-│   └── chunks.json              # processed knowledge base
-├── models/                      # saved model weights
-├── rag.py                       # RAG pipeline
-├── test.py                      # tests
-├── requirements.txt
-└── .env                         # API keys (not committed)
+│   ├── chunks.json              # processed knowledge base
+│   └── faiss.index              # vector index
+├── models/
+│   └── xception.py              # Xception architecture
+├── tests/
+│   └── test.py
+├── utilities/                   # architecture diagram + training curves
+└── xception-deepfake-detector.ipynb  # training notebook
 ```
 
 ---
 
 ## Installation
-
 ```bash
-git clone https://github.com/yourusername/deepfake_rag
-cd deepfake_rag
+git clone https://github.com/RamadhanAdam/deepfake-rag
+cd deepfake-rag
 
 conda create -n deepfake_rag python=3.10
 conda activate deepfake_rag
@@ -82,7 +108,6 @@ pip install -r requirements.txt
 ```
 
 Create `.env`:
-
 ```
 GROQ_API_KEY=your_key_here
 ```
@@ -91,21 +116,29 @@ GROQ_API_KEY=your_key_here
 
 ## Usage
 
-**Build knowledge base:**
+**Run API locally:**
+```bash
+uvicorn api:app --reload
+```
 
+**Build knowledge base:**
 ```bash
 cd knowledge_base
 python build_knowledge_base.py
 ```
 
-**Run RAG pipeline:**
-
-```bash
-python rag.py
-```
-
 **Run tests:**
-
 ```bash
-python test.py
+python tests/test.py
 ```
+
+---
+
+## Deployment
+
+| Component | Platform | Details |
+|-----------|----------|---------|
+| Backend | Render | Docker image pulled from GHCR |
+| Model weights | HuggingFace Hub | `RamadhanZome/deepfake-xception` |
+| Frontend | Vercel | Connected to GitHub, auto-deploys on push |
+| CI/CD | GitHub Actions | Builds and pushes Docker image on every push to `main` |

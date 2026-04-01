@@ -1,22 +1,21 @@
 FROM python:3.10-slim
 
-# create non-root user
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# create non-root user with home directory
+RUN addgroup --system appgroup && \
+    adduser --system --ingroup appgroup --home /home/appuser appuser
 
 WORKDIR /app
 
-# copy requirements first for layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# copy app code
 COPY . .
 
-# give ownership to non-root user
 RUN chown -R appuser:appgroup /app
 
-# switch to non-root user
 USER appuser
+
+ENV HOME=/home/appuser
 
 EXPOSE 8000
 

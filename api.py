@@ -7,6 +7,7 @@ curl -X POST "http://localhost:8000/predict" -F "file=@path/to/image.jpg"
 """
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import uuid
@@ -15,6 +16,12 @@ from rag import RAGPipeline
 
 app = FastAPI(title="Deepfake Detection API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://deepfake-rag.vercel.app"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Lazy-loaded globals — loaded on first request, not at startup
 _model = None
 _rag = None
@@ -61,7 +68,7 @@ async def predict_image(file: UploadFile = File(...)):
         })
     finally:
         os.remove(temporary_path)
-        
+
 # """
 # api.py
 # FastAPI wrapper around the CNN + RAG pipeline.

@@ -19,5 +19,5 @@ jobs:
 
       - name: Build and push
         run: |
-          docker build -t ghcr.io/ramadhanadam/deepfake-rag:v3 .
-          docker push ghcr.io/ramadhanadam/deepfake-rag:v3
+          docker build -t ghcr.io/ramadhanadam/deepfake-rag:v4 .
+          docker push ghcr.io/ramadhanadam/deepfake-rag:v4

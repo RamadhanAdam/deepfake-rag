@@ -1,0 +1,10 @@
+test_images/
+knowledge_base/pdfs/
+models/best_xception.pth
+__pycache__/
+*.pyc
+*.pth
+frontend/node_modules/
+.env
+notebooks/
+*.ipynb

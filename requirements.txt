@@ -1,0 +1,15 @@
+pymupdf
+requests
+sentence-transformers
+faiss-cpu
+numpy
+torch
+torchvision
+transformers
+fastapi
+uvicorn
+groq
+python-dotenv
+huggingface_hub
+python-multipart
+Pillow

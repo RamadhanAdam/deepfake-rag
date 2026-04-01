@@ -1,0 +1,27 @@
+# env
+.env
+
+# model weights
+models/best_xception.pth
+*.pth
+
+# dataset
+test_images/
+knowledge_base/pdfs/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# node
+frontend/node_modules/
+frontend/dist/
+
+# notebooks
+notebooks/
+*.ipynb
+
+# misc
+.DS_Store
+*.zip

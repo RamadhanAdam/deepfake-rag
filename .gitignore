@@ -26,3 +26,4 @@ notebooks/
 .DS_Store
 *.zip
 knowledge_base/pdfs/
+knowledge_base/faiss.index

@@ -18,17 +18,21 @@ class RAGPipeline:
 
     def load(self):
         """Load chunks, embed them, build FAISS index, initialize Groq client."""
-        # load chunks
         with open("knowledge_base/chunks.json", "r") as f:
             self.chunks = json.load(f)
 
-        # load embedding model
         self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # build faiss index
-        self.index = faiss.read_index("knowledge_base/faiss.index") if os.path.exists("knowledge_base/faiss.index") else faiss.IndexFlatL2(d)
+        if os.path.exists("knowledge_base/faiss.index"):
+            self.index = faiss.read_index("knowledge_base/faiss.index")
+        else:
+            embeddings = self.embedding_model.encode(
+                [chunk["text"] for chunk in self.chunks]
+            ).astype("float32")
+            d = embeddings.shape[1]
+            self.index = faiss.IndexFlatL2(d)
+            self.index.add(embeddings)
 
-        # init groq client
         self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     def retrieve(self, query, k=5):

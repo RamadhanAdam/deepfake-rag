@@ -26,6 +26,19 @@ A deepfake detection system combining an **Xception CNN** classifier with a **Re
 
 ---
 
+## Dataset
+
+The Xception classifier was trained on the **140k Real and Fake Faces** dataset:
+
+- **Source**: [Kaggle — xhlulu/140k-real-and-fake-faces](https://www.kaggle.com/datasets/xhlulu/140k-real-and-fake-faces)
+- **Fake images**: GAN-generated faces
+- **Split**: 50k train / 10k valid / 10k test per class (100k train, 20k valid, 20k test total)
+- **Input size**: Resized to 299×299, normalized to mean=0.5, std=0.5
+- **Label mapping**: `fake=0, real=1` (alphabetical, via `ImageFolder`)
+- **Training hardware**: Kaggle T4 x2 GPU with mixed precision (AMP)
+
+---
+
 ## How Deepfakes Work
 
 A deepfake is a face image or video generated or manipulated by a Generative Adversarial Network (GAN). Two networks compete:
@@ -69,6 +82,17 @@ The knowledge base can be updated at any time by adding new papers and rebuildin
 
 ---
 
+## Results
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Validation accuracy | ~97% | 20,000 held-out face images |
+| Inference speed | <2 seconds | CPU only, no GPU at inference |
+| Confidence on clear fakes | 100% | Images with strong artefacts |
+| Knowledge base | 2,665 chunks | From 10 peer-reviewed papers |
+| RAG retrieval | Top 5 per query | FAISS cosine similarity |
+
+---
 ## Project Structure
 ```
 deepfake_rag/
@@ -137,6 +161,14 @@ python build_knowledge_base.py
 ```bash
 python tests/test.py
 ```
+
+---
+
+## Limitations
+- **GAN-focused**: Trained on GAN fakes only — diffusion model outputs (Stable Diffusion, Midjourney) are not yet handled
+- **Images only**: No video/temporal analysis yet
+- **Cold start**: First request can take ~50s on free tier while model weights load
+- **Static knowledge base**: FAISS index requires manual updates when new papers are published
 
 ---
 

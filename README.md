@@ -160,6 +160,7 @@ python build_knowledge_base.py
 **Run tests:**
 ```bash
 python tests/test.py
+python evaluate_rag.py
 ```
 
 ---

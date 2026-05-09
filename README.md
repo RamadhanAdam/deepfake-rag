@@ -92,6 +92,19 @@ The knowledge base can be updated at any time by adding new papers and rebuildin
 | Knowledge base | 2,665 chunks | From 10 peer-reviewed papers |
 | RAG retrieval | Top 5 per query | FAISS cosine similarity |
 
+### RAG Evaluation
+
+RAG was evaluated with a small hand-made query set in `tests/evaluate_rag.py`.
+
+- Retrieval Recall@3: 0.75 (3/4)
+- Generation check: PASS for both DEEPFAKE and REAL examples
+
+| Evaluation | Result | Notes |
+|------------|--------|-------|
+| Retrieval Recall@3 | 0.75 (3/4) | 3 of 4 queries retrieved an expected source in the top 3 |
+| DEEPFAKE generation check | PASS | Explanation was long enough and mentioned the prediction |
+| REAL generation check | PASS | Explanation was long enough and mentioned the prediction |
+
 ---
 ## Project Structure
 ```

@@ -1,46 +1,56 @@
 import json
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
-from groq import Groq
+import faiss  # type: ignore[reportMissingImports]
+from sentence_transformers import SentenceTransformer  # type: ignore[reportMissingImports]
+from groq import Groq  # type: ignore[reportMissingImports]
 from dotenv import load_dotenv
 import os
+from typing import Any, cast
 
 load_dotenv()
 
 
 class RAGPipeline:
     def __init__(self):
-        self.index = None
-        self.chunks = None
-        self.embedding_model = None
-        self.groq_client = None
+        self.index: Any | None = None
+        self.chunks: list[dict[str, Any]] | None = None
+        self.embedding_model: Any | None = None
+        self.groq_client: Any | None = None
 
     def load(self):
         """Load chunks, embed them, build FAISS index, initialize Groq client."""
         with open("knowledge_base/chunks.json", "r") as f:
-            self.chunks = json.load(f)
+            chunks = cast(list[dict[str, Any]], json.load(f))
 
-        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
         if os.path.exists("knowledge_base/faiss.index"):
-            self.index = faiss.read_index("knowledge_base/faiss.index")
+            index = faiss.read_index("knowledge_base/faiss.index")
         else:
-            embeddings = self.embedding_model.encode(
-                [chunk["text"] for chunk in self.chunks]
+            embeddings = embedding_model.encode(
+                [chunk["text"] for chunk in chunks]
             ).astype("float32")
             d = embeddings.shape[1]
-            self.index = faiss.IndexFlatL2(d)
-            self.index.add(embeddings)
+            index = faiss.IndexFlatL2(d)
+            cast(Any, index).add(embeddings)
 
-        self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            raise RuntimeError("GROQ_API_KEY is not set.")
+
+        self.chunks = chunks
+        self.embedding_model = embedding_model
+        self.index = index
+        self.groq_client = Groq(api_key=groq_api_key)
 
     def retrieve(self, query, k=5):
         """Embed query and retrieve top-K most similar chunks from FAISS and get the actual chunk data from chunks.json along with their distances."""
+        if self.embedding_model is None or self.index is None or self.chunks is None:
+            raise RuntimeError("RAGPipeline.load() must be called before retrieve().")
+
         query_vector = self.embedding_model.encode([query]).astype("float32")
-        D, I = self.index.search(query_vector, k)
-        retrieved = [self.chunks[idx] for idx in I[0]]
-        return retrieved, D[0]
+        distances, labels = self.index.search(query_vector, k)
+        retrieved = [self.chunks[idx] for idx in labels[0]]
+        return retrieved, distances[0]
 
     def build_prompt(self, prediction, confidence, retrieved_chunks):
         context = ""
@@ -66,6 +76,9 @@ class RAGPipeline:
 
     def generate_explanation(self, prompt):
         """Send prompt to Groq LLM and return the generated explanation."""
+        if self.groq_client is None:
+            raise RuntimeError("RAGPipeline.load() must be called before generate_explanation().")
+
         response = self.groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[

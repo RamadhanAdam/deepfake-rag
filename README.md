@@ -119,7 +119,8 @@ deepfake_rag/
 ├── models/
 │   └── xception.py              # Xception architecture
 ├── tests/
-│   └── test.py
+│   ├── test.py                  # RAG smoke tests
+│   └── evaluate_rag.py          # retrieval and generation evaluation
 ├── utilities/                   # architecture diagram + training curves
 └── xception-deepfake-detector.ipynb  # training notebook
 ```
@@ -160,13 +161,12 @@ python build_knowledge_base.py
 **Run tests:**
 ```bash
 python tests/test.py
-python evaluate_rag.py
+python tests/evaluate_rag.py
 ```
 
-** For full run of evaluation of rag, run the following command
+**Run full RAG evaluation:**
 ```bash
 RUN_GENERATION_EVAL=1 python tests/evaluate_rag.py
-
 ```
 
 

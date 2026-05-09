@@ -92,20 +92,6 @@ The knowledge base can be updated at any time by adding new papers and rebuildin
 | Knowledge base | 2,665 chunks | From 10 peer-reviewed papers |
 | RAG retrieval | Top 5 per query | FAISS cosine similarity |
 
-### RAG Evaluation
-
-RAG was evaluated with a small hand-made query set in `tests/evaluate_rag.py`.
-
-Summary:
-- Retrieval Recall@3: 0.75 (3/4)
-- Generation check: PASS for both DEEPFAKE and REAL examples
-
-| Evaluation | Result | Notes |
-|------------|--------|-------|
-| Retrieval Recall@3 | 0.75 (3/4) | 3 of 4 queries retrieved an expected source in the top 3 |
-| DEEPFAKE generation check | PASS | Explanation was long enough and mentioned the prediction |
-| REAL generation check | PASS | Explanation was long enough and mentioned the prediction |
-
 ---
 ## Project Structure
 ```
@@ -133,8 +119,7 @@ deepfake_rag/
 ├── models/
 │   └── xception.py              # Xception architecture
 ├── tests/
-│   ├── test.py                  # RAG smoke tests
-│   └── evaluate_rag.py          # retrieval and generation evaluation
+│   └── test.py
 ├── utilities/                   # architecture diagram + training curves
 └── xception-deepfake-detector.ipynb  # training notebook
 ```
@@ -175,9 +160,16 @@ python build_knowledge_base.py
 **Run tests:**
 ```bash
 python tests/test.py
-python tests/evaluate_rag.py
-RUN_GENERATION_EVAL=1 python tests/evaluate_rag.py
+python evaluate_rag.py
 ```
+
+** For full run of evaluation of rag, run the following command
+```bash
+RUN_GENERATION_EVAL=1 python tests/evaluate_rag.py
+
+```
+
+
 
 ---
 

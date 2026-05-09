@@ -1,8 +1,7 @@
-"""
-train.py
-Full training script for Xception deepfake detector.
+"""Full training script for the Xception deepfake detector.
+
 Trains on the 140k Real and Fake Faces dataset.
-Run this on a GPU machine or Colab — not on CPU.
+Run this on a GPU machine or Colab, not on CPU.
 
 Dataset: 140k Real and Fake Faces
 Source: https://www.kaggle.com/datasets/xhlulu/140k-real-and-fake-faces
@@ -18,30 +17,36 @@ Usage:
     python train.py
 """
 
-import torch
-import torch.nn as nn
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
+from pathlib import Path
+from typing import Any
+
+import matplotlib.pyplot as plt  # type: ignore[reportMissingImports]
+import torch  # type: ignore[reportMissingImports]
+import torch.nn as nn  # type: ignore[reportMissingImports]
+from torch.utils.data import DataLoader  # type: ignore[reportMissingImports]
+from torchvision import datasets, transforms  # type: ignore[reportMissingImports]
+
 from models.xception import Xception
 
 
 #  Config 
-DATASET_PATH = 'dataset/real_vs_fake/real-vs-fake'
-MODEL_SAVE_PATH = 'models/best_xception.pth'
+PROJECT_ROOT = Path(__file__).resolve().parent
+DATASET_PATH = PROJECT_ROOT / "dataset" / "real_vs_fake" / "real-vs-fake"
+MODEL_SAVE_PATH = PROJECT_ROOT / "models" / "best_xception.pth"
+CURVES_SAVE_PATH = PROJECT_ROOT / "utilities" / "training_curves.png"
 NUM_EPOCHS = 10
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 
 
-def get_dataloaders():
+def get_dataloaders() -> tuple[DataLoader[Any], DataLoader[Any]]:
     transform = transforms.Compose([
         transforms.Resize((299, 299)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
-    train_dataset = datasets.ImageFolder(root=f'{DATASET_PATH}/train', transform=transform)
-    valid_dataset = datasets.ImageFolder(root=f'{DATASET_PATH}/valid', transform=transform)
+    train_dataset = datasets.ImageFolder(root=DATASET_PATH / "train", transform=transform)
+    valid_dataset = datasets.ImageFolder(root=DATASET_PATH / "valid", transform=transform)
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,  num_workers=2)
     valid_loader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
@@ -51,11 +56,11 @@ def get_dataloaders():
     return train_loader, valid_loader
 
 
-def train():
+def train() -> None:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using: {device}")
 
-    model     = Xception(num_classes=2).to(device)
+    model = Xception(num_classes=2).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
@@ -111,6 +116,7 @@ def train():
         # Save best model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
+            MODEL_SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), MODEL_SAVE_PATH)
             print(f"  --> Best model saved! Val Acc: {best_val_acc:.2f}%")
 
@@ -121,7 +127,12 @@ def train():
     plot_metrics(train_losses, train_accs, val_losses, val_accs)
 
 
-def plot_metrics(train_losses, train_accs, val_losses, val_accs):
+def plot_metrics(
+    train_losses: list[float],
+    train_accs: list[float],
+    val_losses: list[float],
+    val_accs: list[float],
+) -> None:
     """Plot and save loss and accuracy curves."""
     epochs = range(1, len(train_losses) + 1)
 
@@ -144,9 +155,10 @@ def plot_metrics(train_losses, train_accs, val_losses, val_accs):
     plt.legend()
 
     plt.tight_layout()
-    plt.savefig('utilities/training_curves.png')
+    CURVES_SAVE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(CURVES_SAVE_PATH)
     plt.show()
-    print("Training curves saved to utilities/training_curves.png")
+    print(f"Training curves saved to {CURVES_SAVE_PATH}")
 
 
 if __name__ == '__main__':

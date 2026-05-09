@@ -1,10 +1,17 @@
-import fitz
-import re
-import os
 import json
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
+import re
+from pathlib import Path
+from typing import Any, cast
+
+import faiss  # type: ignore[reportMissingImports]
+import fitz  # type: ignore[reportMissingImports]
+import numpy as np  # type: ignore[reportMissingImports]
+from sentence_transformers import SentenceTransformer  # type: ignore[reportMissingImports]
+
+KNOWLEDGE_BASE_DIR = Path(__file__).resolve().parent
+PDF_DIR = KNOWLEDGE_BASE_DIR / "pdfs"
+CHUNKS_PATH = KNOWLEDGE_BASE_DIR / "chunks.json"
+INDEX_PATH = KNOWLEDGE_BASE_DIR / "faiss.index"
 
 PAPERS = [
     {"source": "FaceForensics++", "year": 2019, "url": "https://arxiv.org/abs/1901.08971"},
@@ -20,7 +27,7 @@ PAPERS = [
 ]
 
 
-def extract_text(pdf_path):
+def extract_text(pdf_path: Path) -> list[str]:
     """Extract all text from PDF page by page."""
     doc = fitz.open(pdf_path)
     pages_text = []
@@ -29,7 +36,7 @@ def extract_text(pdf_path):
     return pages_text
 
 
-def chunk_text(pages_text, source, year, url):
+def chunk_text(pages_text: list[str], source: str, year: int, url: str) -> list[dict[str, Any]]:
     """Chunk text into paragraphs of 200-2000 chars, skipping references/figures/tables."""
     chunks = []
 
@@ -59,14 +66,14 @@ def chunk_text(pages_text, source, year, url):
 
     return chunks
 
-def build_knowledge_base():
-    all_chunks = []
+def build_knowledge_base() -> None:
+    all_chunks: list[dict[str, Any]] = []
     chunk_id = 0
 
     for paper in PAPERS:
-        pdf_path = f"knowledge_base/pdfs/{paper['source'].replace(' ', '_')}.pdf"
+        pdf_path = PDF_DIR / f"{paper['source'].replace(' ', '_')}.pdf"
 
-        if not os.path.exists(pdf_path):
+        if not pdf_path.exists():
             print(f"Missing PDF: {pdf_path} — skipping")
             continue
 
@@ -81,7 +88,7 @@ def build_knowledge_base():
         all_chunks.extend(chunks)
         print(f"Got {len(chunks)} chunks")
 
-    with open("knowledge_base/chunks.json", "w") as f:
+    with open(CHUNKS_PATH, "w") as f:
         json.dump(all_chunks, f, indent=2)
 
     print(f"\nTotal chunks: {len(all_chunks)}")
@@ -92,11 +99,11 @@ def build_knowledge_base():
     embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
     texts = [chunk['text'] for chunk in all_chunks]
     embeddings = embedding_model.encode(texts, show_progress_bar=True)
-    embeddings = np.array(embeddings).astype('float32')
+    embeddings = np.array(embeddings).astype("float32")
 
     index = faiss.IndexFlatL2(embeddings.shape[1])
-    index.add(embeddings)
-    faiss.write_index(index, "knowledge_base/faiss.index")
+    cast(Any, index).add(embeddings)
+    faiss.write_index(index, str(INDEX_PATH))
     print("FAISS index built and saved to knowledge_base/faiss.index")
 
 

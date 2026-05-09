@@ -5,12 +5,16 @@ Usage: uvicorn api:app --reload
 Curl example for testing:
 curl -X POST "http://localhost:8000/predict" -F "file=@path/to/image.jpg"
 """
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
+from tempfile import gettempdir
+from typing import Any
 import shutil
-import os
 import uuid
+
+from fastapi import FastAPI, File, HTTPException, UploadFile  # type: ignore[reportMissingImports]
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore[reportMissingImports]
+from fastapi.responses import JSONResponse  # type: ignore[reportMissingImports]
+
 from predict import load_model, predict
 from rag import RAGPipeline
 
@@ -23,16 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # Lazy-loaded globals — loaded on first request, not at startup
-_model = None
-_rag = None
+_model: Any | None = None
+_rag: RAGPipeline | None = None
 
-def get_model():
+def get_model() -> Any:
     global _model
     if _model is None:
         _model = load_model()
     return _model
 
-def get_rag():
+def get_rag() -> RAGPipeline:
     global _rag
     if _rag is None:
         _rag = RAGPipeline()
@@ -48,15 +52,16 @@ def root():
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
     """Upload an image, get back label, confidence, and RAG explanation."""
-    if not file.filename.endswith((".jpg", ".jpeg", ".png")):
+    filename = file.filename or ""
+    if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
         raise HTTPException(status_code=400, detail="Invalid file type. Only jpg/jpeg/png allowed.")
 
-    temporary_path = f"/tmp/{uuid.uuid4().hex}_{file.filename}"
+    temporary_path = Path(gettempdir()) / f"{uuid.uuid4().hex}_{Path(filename).name}"
     with open(temporary_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        result      = predict(temporary_path, get_model())
+        result      = predict(str(temporary_path), get_model())
         label       = result['label']
         confidence  = result['confidence'] / 100
         explanation = get_rag().explain(label.upper(), confidence)
@@ -67,7 +72,7 @@ async def predict_image(file: UploadFile = File(...)):
             "explanation": explanation
         })
     finally:
-        os.remove(temporary_path)
+        temporary_path.unlink(missing_ok=True)
 
 # """
 # api.py

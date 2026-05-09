@@ -1,5 +1,8 @@
-import requests
-import os
+from pathlib import Path
+
+import requests  # type: ignore[reportMissingImports]
+
+PDF_DIR = Path(__file__).resolve().parent / "pdfs"
 
 PAPERS = [
     {"url": "https://arxiv.org/pdf/1901.08971", "source": "FaceForensics++", "year": 2019},
@@ -15,19 +18,20 @@ PAPERS = [
 ]
 
 
-def download_pdf(url, save_path):
+def download_pdf(url: str, save_path: Path) -> None:
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()
     with open(save_path, "wb") as f:
         f.write(response.content)
     print(f"Downloaded: {save_path}")
 
 
-def main():
-    os.makedirs("pdfs", exist_ok=True)
+def main() -> None:
+    PDF_DIR.mkdir(parents=True, exist_ok=True)
     for paper in PAPERS:
-        pdf_path = f"pdfs/{paper['source'].replace(' ', '_')}.pdf"
-        if os.path.exists(pdf_path):
+        pdf_path = PDF_DIR / f"{paper['source'].replace(' ', '_')}.pdf"
+        if pdf_path.exists():
             print(f"Already exists, skipping: {pdf_path}")
             continue
         download_pdf(paper["url"], pdf_path)

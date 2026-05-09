@@ -1,14 +1,19 @@
-"""
-predict.py
-Load the trained Xception model and classifies new images as real or fake. Usage:
-Returns the label and confidence score for each image in the specified folder.
-"""
+"""Load the trained Xception model and classify images as real or fake."""
 
-import torch
-import torch.nn as nn
-from torchvision import transforms
-from PIL import Image
+from typing import Any, TypedDict, cast
+
+import torch  # type: ignore[reportMissingImports]
+import torch.nn as nn  # type: ignore[reportMissingImports]
+from PIL import Image  # type: ignore[reportMissingImports]
+from torchvision import transforms  # type: ignore[reportMissingImports]
+
 from models.xception import Xception
+
+
+class PredictionResult(TypedDict):
+    label: str
+    confidence: float
+
 
 # MODEL_PATH = 'models/best_xception.pth'
 MODEL_PATH = 'RamadhanZome/deepfake-xception'
@@ -29,16 +34,17 @@ transform = transforms.Compose([
 #     model.eval() # setting to eval mode for inference
 #     return model
 
-def load_model()-> nn.Module:
+def load_model() -> nn.Module:
     """Load weights from HuggingFace Hub and load model."""
-    from huggingface_hub import hf_hub_download
+    from huggingface_hub import hf_hub_download  # type: ignore[reportMissingImports]
+
     weights_path = hf_hub_download(repo_id=MODEL_PATH, filename=WEIGHTS_FILE)
     model = Xception(num_classes=2)
     model.load_state_dict(torch.load(weights_path, map_location='cpu'))
     model.eval()
     return model
 
-def predict(image_path: str, model: torch.nn.Module) -> dict:
+def predict(image_path: str, model: nn.Module) -> PredictionResult:
     """
     Run inference on a single image.
     Returns: { 'label': 'real'|'fake', 'confidence': float (0-100) }
@@ -47,7 +53,7 @@ def predict(image_path: str, model: torch.nn.Module) -> dict:
     input_tensor = transform(image).unsqueeze(0)  # add batch dim -> (1, 3, 299, 299)
 
     with torch.no_grad():
-        output = model(input_tensor) # raw logits
+        output = cast(Any, model)(input_tensor) # raw logits
         probs = torch.softmax(output, dim = 1) # convert to probabilities
         confidence, predicted_idx = torch.max(probs, dim=1)
 

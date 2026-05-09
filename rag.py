@@ -36,7 +36,7 @@ class RAGPipeline:
         self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     def retrieve(self, query, k=5):
-        """Embed query and retrieve top-K most similar chunks from FAISS."""
+        """Embed query and retrieve top-K most similar chunks from FAISS and get the actual chunk data from chunks.json along with their distances."""
         query_vector = self.embedding_model.encode([query]).astype("float32")
         D, I = self.index.search(query_vector, k)
         retrieved = [self.chunks[idx] for idx in I[0]]

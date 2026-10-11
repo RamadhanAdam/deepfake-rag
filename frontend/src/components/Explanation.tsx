@@ -19,6 +19,38 @@ export function Explanation({ text }: { text: string }) {
     <div className="mt-3 space-y-4 leading-relaxed text-muted">
       {blocks.map((block, k) => {
         const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        // A Markdown table: | a | b | rows, with a |---|---| separator under the header.
+        if (lines.length >= 2 && lines.every((l) => l.startsWith("|"))) {
+          const cells = (l: string) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+          const rows = lines.filter((l) => !/^\|[\s:|-]+\|?$/.test(l)).map(cells);
+          const [head, ...body] = rows;
+          return (
+            <div key={k} className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-ink">
+                    {head.map((c, i) => (
+                      <th key={i} className="py-2 pr-4 font-medium text-ink">
+                        {inline(c)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {body.map((r, i) => (
+                    <tr key={i} className="border-b border-rule align-top">
+                      {r.map((c, j) => (
+                        <td key={j} className="py-2 pr-4">
+                          {inline(c.replace(/<br\s*\/?>/gi, " "))}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
         const numbered = lines.every((l) => /^\d+[.)]\s/.test(l));
         const bulleted = lines.every((l) => /^[-*•]\s/.test(l));
         if (numbered || bulleted) {
@@ -29,6 +61,13 @@ export function Explanation({ text }: { text: string }) {
                 <li key={i}>{inline(l.replace(/^(\d+[.)]|[-*•])\s+/, ""))}</li>
               ))}
             </List>
+          );
+        }
+        if (lines.length === 1 && /^\*\*[^*]+\*\*:?$/.test(lines[0])) {
+          return (
+            <p key={k} className="font-medium text-ink">
+              {lines[0].replace(/\*\*/g, "")}
+            </p>
           );
         }
         if (/^#{1,4}\s/.test(lines[0] ?? "")) {

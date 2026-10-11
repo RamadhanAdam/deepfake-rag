@@ -84,6 +84,7 @@ class RAGPipeline:
         return retrieved, distances[0]
 
     def build_prompt(self, prediction, confidence, retrieved_chunks):
+        """Messages for the LLM: a short, plain answer to "is this photo AI-generated?", with a little context."""
         context = ""
         for chunk in retrieved_chunks:
             context += (
@@ -91,50 +92,75 @@ class RAGPipeline:
             )
 
         if prediction == "REAL":
-            question = f"The detection model predicted this image is REAL with {confidence:.0%} confidence. Based on the research context, explain what characteristics make an image likely to be authentic and why this prediction may be reliable or unreliable."
+            verdict = "a real photograph, not AI-generated"
+            caution = "images from newer generators (such as diffusion models), or heavily edited or compressed photos, can still fool it"
         else:
-            question = f"The detection model predicted this image is a DEEPFAKE with {confidence:.0%} confidence. Based on the research context, explain what artifacts or characteristics are typically present in deepfakes and why this prediction may be reliable or unreliable."
+            verdict = "AI-generated (a GAN-made face)"
+            caution = "heavy compression, filters or unusual lighting can make a real photo look fake to it"
+        unsure = (
+            " Say plainly that the detector is not sure." if confidence < 0.75 else ""
+        )
 
-        prompt = f"""You are a forensic deepfake detection expert.
+        system = (
+            "You explain the result of an AI-image detector to a person who uploaded a photo and wants to know "
+            "whether it is AI-generated. You have not seen the photo: you only know the detector's verdict and "
+            "confidence, plus a few passages from deepfake-forensics papers. Never say you examined the image, and "
+            "never claim any particular check was run on it. Write for a general reader."
+        )
+        user = f"""The detector, an Xception network trained on real photos and GAN-generated faces, says this photo is {verdict}, with {confidence:.1%} confidence.
 
-    CONTEXT (relevant research):
-    {context}
+Research passages:{context}
 
-    QUESTION:
-    {question}
-    Ground your explanation in the context above. If the context does not contain enough information, say so.
+Write one short paragraph of 3 or 4 plain sentences, under 90 words, with no headings, lists, tables or bold text.
+Start by saying what the verdict means in everyday words.{unsure}
+Then give one or two things that detectors like this look for in AI-generated faces, taken from the passages, naming the source in brackets the way it appears in a passage header, for example (FaceForensics++).
+End with one honest caution: {caution}.
+Only cite sources named in the [Source: ...] headers above."""
+        return [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
 
-    EXPLANATION:"""
-        return prompt
-
-    def generate_explanation(self, prompt):
-        """Send prompt to Groq LLM and return the generated explanation."""
+    def generate_explanation(self, messages):
+        """Send the messages to the Groq LLM and return the explanation."""
         if self.groq_client is None:
             raise RuntimeError(
                 "RAGPipeline.load() must be called before generate_explanation()."
             )
 
+        def ask():
+            options = {
+                "model": self.model_name,
+                "messages": messages,
+                "temperature": 0.3,
+                "max_tokens": 800,
+            }
+            if self.model_name.startswith("openai/gpt-oss"):
+                options["reasoning_effort"] = (
+                    "low"  # keep the reasoning short so the answer fits
+                )
+            return self.groq_client.chat.completions.create(**options)
+
         try:
-            response = self.groq_client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-            )
+            response = ask()
         except NotFoundError:
             # the model was retired while the server was running: choose again and retry once
             self.model_name = pick_model(self.groq_client)
-            response = self.groq_client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        return response.choices[0].message.content
+            response = ask()
+        text = (response.choices[0].message.content or "").strip()
+        if not text:
+            raise RuntimeError("The LLM returned an empty explanation.")
+        return text
 
     def explain(self, prediction, confidence):
         """Full RAG pipeline: retrieve -> prompt -> generate."""
-        query = f"deepfake detection artifacts visual forensics {prediction.lower()} image characteristics"
+        if prediction == "REAL":
+            query = "how detectors tell real photographs from GAN-generated faces"
+        else:
+            query = "visual artifacts that reveal GAN-generated deepfake faces"
         retrieved, distances = self.retrieve(query, k=5)
-        prompt = self.build_prompt(prediction, confidence, retrieved)
-        explanation = self.generate_explanation(prompt)
-        return explanation
+        messages = self.build_prompt(prediction, confidence, retrieved)
+        return self.generate_explanation(messages)
 
 
 if __name__ == "__main__":

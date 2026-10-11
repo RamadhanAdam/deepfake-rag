@@ -1,12 +1,40 @@
 import json
 import faiss  # type: ignore[reportMissingImports]
 from sentence_transformers import SentenceTransformer  # type: ignore[reportMissingImports]
-from groq import Groq  # type: ignore[reportMissingImports]
+from groq import Groq, NotFoundError  # type: ignore[reportMissingImports]
 from dotenv import load_dotenv
 import os
 from typing import Any, cast
 
 load_dotenv()
+
+# Groq retires models from time to time (llama-3.3-70b-versatile went in 2026), so the model is chosen at
+# startup from what the key can actually use: GROQ_MODEL if set, else the first available preferred model,
+# else any available chat model.
+PREFERRED_MODELS = [
+    "openai/gpt-oss-120b",
+    "llama-3.3-70b-versatile",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "qwen/qwen3-32b",
+    "openai/gpt-oss-20b",
+]
+NOT_CHAT = ("whisper", "guard", "tts", "playai", "orpheus", "compound", "distil")
+
+
+def pick_model(client: Any) -> str:
+    """Name of a Groq chat model this key can use."""
+    if os.getenv("GROQ_MODEL"):
+        return os.environ["GROQ_MODEL"]
+    available = [m.id for m in client.models.list().data]
+    for name in PREFERRED_MODELS:
+        if name in available:
+            return name
+    chat = sorted(m for m in available if not any(word in m for word in NOT_CHAT))
+    if not chat:
+        raise RuntimeError(
+            f"No chat model available to this Groq key (found: {available})."
+        )
+    return chat[0]
 
 
 class RAGPipeline:
@@ -15,6 +43,7 @@ class RAGPipeline:
         self.chunks: list[dict[str, Any]] | None = None
         self.embedding_model: Any | None = None
         self.groq_client: Any | None = None
+        self.model_name: str | None = None
 
     def load(self):
         """Load chunks, embed them, build FAISS index, initialize Groq client."""
@@ -41,6 +70,8 @@ class RAGPipeline:
         self.embedding_model = embedding_model
         self.index = index
         self.groq_client = Groq(api_key=groq_api_key)
+        self.model_name = pick_model(self.groq_client)
+        print(f"RAG: explanations will use the Groq model {self.model_name}")
 
     def retrieve(self, query, k=5):
         """Embed query and retrieve top-K most similar chunks from FAISS and get the actual chunk data from chunks.json along with their distances."""
@@ -83,10 +114,18 @@ class RAGPipeline:
                 "RAGPipeline.load() must be called before generate_explanation()."
             )
 
-        response = self.groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-        )
+        try:
+            response = self.groq_client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except NotFoundError:
+            # the model was retired while the server was running: choose again and retry once
+            self.model_name = pick_model(self.groq_client)
+            response = self.groq_client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+            )
         return response.choices[0].message.content
 
     def explain(self, prediction, confidence):

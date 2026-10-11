@@ -71,7 +71,13 @@ async def predict_image(file: UploadFile = File(...)):
         result = predict(str(temporary_path), get_model())
         label = result["label"]
         confidence = result["confidence"] / 100
-        explanation = get_rag().explain(label.upper(), confidence)
+        # The verdict comes from the CNN alone. If the explanation step fails (Groq down, model retired,
+        # key expired), still return the verdict rather than a 500.
+        try:
+            explanation = get_rag().explain(label.upper(), confidence)
+        except Exception as error:  # noqa: BLE001
+            print(f"explanation failed: {type(error).__name__}: {error}")
+            explanation = None
 
         return JSONResponse(
             {

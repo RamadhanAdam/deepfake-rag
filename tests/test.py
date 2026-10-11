@@ -9,7 +9,6 @@ from rag import RAGPipeline
 rag = RAGPipeline()
 
 
-
 def test_load():
     """Test that RAG loads without errors."""
     rag.load()

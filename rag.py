@@ -55,7 +55,9 @@ class RAGPipeline:
     def build_prompt(self, prediction, confidence, retrieved_chunks):
         context = ""
         for chunk in retrieved_chunks:
-            context += f"\n\n[Source: {chunk['source']} {chunk['year']}]\n{chunk['text']}"
+            context += (
+                f"\n\n[Source: {chunk['source']} {chunk['year']}]\n{chunk['text']}"
+            )
 
         if prediction == "REAL":
             question = f"The detection model predicted this image is REAL with {confidence:.0%} confidence. Based on the research context, explain what characteristics make an image likely to be authentic and why this prediction may be reliable or unreliable."
@@ -77,13 +79,13 @@ class RAGPipeline:
     def generate_explanation(self, prompt):
         """Send prompt to Groq LLM and return the generated explanation."""
         if self.groq_client is None:
-            raise RuntimeError("RAGPipeline.load() must be called before generate_explanation().")
+            raise RuntimeError(
+                "RAGPipeline.load() must be called before generate_explanation()."
+            )
 
         response = self.groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}],
         )
         return response.choices[0].message.content
 
@@ -99,5 +101,5 @@ class RAGPipeline:
 if __name__ == "__main__":
     rag = RAGPipeline()
     rag.load()
-    explanation = rag.explain("DEEPFAKE", 0.94) # my test example
+    explanation = rag.explain("DEEPFAKE", 0.94)  # my test example
     print(explanation)

@@ -72,7 +72,9 @@ def evaluate_retrieval(rag, k=3):
         retrieved_chunks, distances = rag.retrieve(query, k=k)
         retrieved_sources = [chunk["source"] for chunk in retrieved_chunks]
 
-        hit = any(source_matches(source, expected_sources) for source in retrieved_sources)
+        hit = any(
+            source_matches(source, expected_sources) for source in retrieved_sources
+        )
         correct += int(hit)
 
         print(f"Query: {query}")

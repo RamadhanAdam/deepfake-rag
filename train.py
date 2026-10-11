@@ -29,7 +29,7 @@ from torchvision import datasets, transforms  # type: ignore[reportMissingImport
 from models.xception import Xception
 
 
-#  Config 
+#  Config
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATASET_PATH = PROJECT_ROOT / "dataset" / "real_vs_fake" / "real-vs-fake"
 MODEL_SAVE_PATH = PROJECT_ROOT / "models" / "best_xception.pth"
@@ -40,16 +40,26 @@ LEARNING_RATE = 0.001
 
 
 def get_dataloaders() -> tuple[DataLoader[Any], DataLoader[Any]]:
-    transform = transforms.Compose([
-        transforms.Resize((299, 299)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
-    train_dataset = datasets.ImageFolder(root=DATASET_PATH / "train", transform=transform)
-    valid_dataset = datasets.ImageFolder(root=DATASET_PATH / "valid", transform=transform)
+    transform = transforms.Compose(
+        [
+            transforms.Resize((299, 299)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ]
+    )
+    train_dataset = datasets.ImageFolder(
+        root=DATASET_PATH / "train", transform=transform
+    )
+    valid_dataset = datasets.ImageFolder(
+        root=DATASET_PATH / "valid", transform=transform
+    )
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,  num_workers=2)
-    valid_loader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    train_loader = DataLoader(
+        train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2
+    )
 
     print(f"Classes: {train_dataset.classes}")
     print(f"Train batches: {len(train_loader)} | Val batches: {len(valid_loader)}")
@@ -57,7 +67,7 @@ def get_dataloaders() -> tuple[DataLoader[Any], DataLoader[Any]]:
 
 
 def train() -> None:
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using: {device}")
 
     model = Xception(num_classes=2).to(device)
@@ -67,7 +77,7 @@ def train() -> None:
     train_loader, valid_loader = get_dataloaders()
 
     train_losses, train_accs = [], []
-    val_losses,   val_accs   = [], []
+    val_losses, val_accs = [], []
     best_val_acc = 0.0
 
     for epoch in range(NUM_EPOCHS):
@@ -84,10 +94,10 @@ def train() -> None:
             optimizer.step()
             running_loss += loss.item()
             _, predicted = outputs.max(1)
-            total   += labels.size(0)
+            total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-        train_acc  = 100. * correct / total
+        train_acc = 100.0 * correct / total
         train_loss = running_loss / len(train_loader)
 
         # Validation
@@ -98,13 +108,13 @@ def train() -> None:
             for images, labels in valid_loader:
                 images, labels = images.to(device), labels.to(device)
                 outputs = model(images)
-                loss    = criterion(outputs, labels)
+                loss = criterion(outputs, labels)
                 val_running_loss += loss.item()
                 _, predicted = outputs.max(1)
-                val_total   += labels.size(0)
+                val_total += labels.size(0)
                 val_correct += predicted.eq(labels).sum().item()
 
-        val_acc  = 100. * val_correct / val_total
+        val_acc = 100.0 * val_correct / val_total
         val_loss = val_running_loss / len(valid_loader)
 
         # Store metrics
@@ -120,9 +130,11 @@ def train() -> None:
             torch.save(model.state_dict(), MODEL_SAVE_PATH)
             print(f"  --> Best model saved! Val Acc: {best_val_acc:.2f}%")
 
-        print(f"Epoch {epoch+1}/{NUM_EPOCHS} | "
-              f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
-              f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
+        print(
+            f"Epoch {epoch+1}/{NUM_EPOCHS} | "
+            f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | "
+            f"Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%"
+        )
 
     plot_metrics(train_losses, train_accs, val_losses, val_accs)
 
@@ -140,18 +152,18 @@ def plot_metrics(
 
     # Loss
     plt.subplot(1, 2, 1)
-    plt.plot(epochs, train_losses, label='Train Loss')
-    plt.plot(epochs, val_losses,   label='Val Loss')
-    plt.title('Loss')
-    plt.xlabel('Epoch')
+    plt.plot(epochs, train_losses, label="Train Loss")
+    plt.plot(epochs, val_losses, label="Val Loss")
+    plt.title("Loss")
+    plt.xlabel("Epoch")
     plt.legend()
 
     # Accuracy
     plt.subplot(1, 2, 2)
-    plt.plot(epochs, train_accs, label='Train Acc')
-    plt.plot(epochs, val_accs,   label='Val Acc')
-    plt.title('Accuracy')
-    plt.xlabel('Epoch')
+    plt.plot(epochs, train_accs, label="Train Acc")
+    plt.plot(epochs, val_accs, label="Val Acc")
+    plt.title("Accuracy")
+    plt.xlabel("Epoch")
     plt.legend()
 
     plt.tight_layout()
@@ -161,5 +173,5 @@ def plot_metrics(
     print(f"Training curves saved to {CURVES_SAVE_PATH}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     train()

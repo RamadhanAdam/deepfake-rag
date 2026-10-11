@@ -5,6 +5,7 @@ Usage: uvicorn api:app --reload
 Curl example for testing:
 curl -X POST "http://localhost:8000/predict" -F "file=@path/to/image.jpg"
 """
+
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any
@@ -30,11 +31,13 @@ app.add_middleware(
 _model: Any | None = None
 _rag: RAGPipeline | None = None
 
+
 def get_model() -> Any:
     global _model
     if _model is None:
         _model = load_model()
     return _model
+
 
 def get_rag() -> RAGPipeline:
     global _rag
@@ -43,10 +46,12 @@ def get_rag() -> RAGPipeline:
         _rag.load()
     return _rag
 
+
 # health check endpoint
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Deepfake Detection API is running"}
+
 
 # main predict endpoint
 @app.post("/predict")
@@ -54,25 +59,30 @@ async def predict_image(file: UploadFile = File(...)):
     """Upload an image, get back label, confidence, and RAG explanation."""
     filename = file.filename or ""
     if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only jpg/jpeg/png allowed.")
+        raise HTTPException(
+            status_code=400, detail="Invalid file type. Only jpg/jpeg/png allowed."
+        )
 
     temporary_path = Path(gettempdir()) / f"{uuid.uuid4().hex}_{Path(filename).name}"
     with open(temporary_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        result      = predict(str(temporary_path), get_model())
-        label       = result['label']
-        confidence  = result['confidence'] / 100
+        result = predict(str(temporary_path), get_model())
+        label = result["label"]
+        confidence = result["confidence"] / 100
         explanation = get_rag().explain(label.upper(), confidence)
 
-        return JSONResponse({
-            "label":       label,
-            "confidence":  result['confidence'],
-            "explanation": explanation
-        })
+        return JSONResponse(
+            {
+                "label": label,
+                "confidence": result["confidence"],
+                "explanation": explanation,
+            }
+        )
     finally:
         temporary_path.unlink(missing_ok=True)
+
 
 # """
 # api.py
@@ -131,6 +141,6 @@ async def predict_image(file: UploadFile = File(...)):
 #             "confidence":   result['confidence'],
 #             "explanation":   explanation
 #         })
-    
+
 #     finally:
 #         os.remove(temporary_path) # always runs, even if something above crashes. Ensures we don't fill up disk with temp files.

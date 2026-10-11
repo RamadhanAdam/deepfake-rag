@@ -238,8 +238,14 @@ function Report({ result }: { result: Verdict }) {
 
       <div className="mt-8">
         <p className="font-mono text-xs uppercase tracking-wider text-faint">Why</p>
-        <Explanation text={result.explanation} />
-        <p className="mt-6 text-sm text-faint">The explanation comes from the research for this verdict; it doesn't point at parts of your photo.</p>
+        {result.explanation ? (
+          <>
+            <Explanation text={result.explanation} />
+            <p className="mt-6 text-sm text-faint">The explanation comes from the research for this verdict; it doesn't point at parts of your photo.</p>
+          </>
+        ) : (
+          <p className="mt-3 leading-relaxed text-muted">The explanation service didn't answer this time. The verdict above is from the classifier alone; try again later for the explanation.</p>
+        )}
       </div>
     </div>
   );

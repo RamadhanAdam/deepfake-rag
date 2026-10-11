@@ -1,6 +1,7 @@
 // Talks to the FastAPI backend (api.py), hosted on a free Hugging Face Space that sleeps when idle.
 
-export type Verdict = { label: "fake" | "real"; confidence: number; explanation: string };
+// explanation is null when the language-model step failed; the verdict still comes from the CNN.
+export type Verdict = { label: "fake" | "real"; confidence: number; explanation: string | null };
 
 export const API_URL =
   import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8000" : "https://ramadhanzome-deepfake-rag.hf.space");

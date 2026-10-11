@@ -1,25 +1,67 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import "tailwindcss";
+
+/* Paper and ink, with one colour for each verdict. Dark mode swaps paper and ink. */
+@theme {
+  --color-paper: #f3f1ea;
+  --color-sheet: #fbfaf6;
+  --color-ink: #16150f;
+  --color-muted: #5f5c52;
+  --color-faint: #8c897d;
+  --color-rule: #d9d5c8;
+  --color-fake: #c8391f;
+  --color-real: #1d6e48;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
 }
 
-:root {
-  --bg: #0a0a0a;
-  --surface: #141414;
-  --border: #2a2a2a;
-  --accent: #e8ff00;
-  --text: #f0f0f0;
-  --muted: #666;
-  --danger: #ff4444;
-  --success: #00ff88;
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'DM Mono', monospace;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-paper: #12120f;
+    --color-sheet: #1a1a16;
+    --color-ink: #ecebe4;
+    --color-muted: #a8a596;
+    --color-faint: #7a776b;
+    --color-rule: #2e2d27;
+    --color-fake: #ff6b4f;
+    --color-real: #4cc38a;
+  }
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-mono);
-  min-height: 100vh;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Faint millimetre grid inside the specimen well. */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* The line that sweeps over the photo while it is being analysed. */
+@keyframes sweep {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.sweep {
+  animation: sweep 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep { animation: none; display: none; }
 }

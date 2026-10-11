@@ -116,15 +116,16 @@ deepfake_rag/
 ├── main.py                      # CLI entry point
 ├── requirements.txt
 ├── Dockerfile
-├── frontend/
+├── frontend/                    # React + TypeScript + Tailwind, built with Vite
 │   ├── index.html
-│   ├── vite.config.js
+│   ├── vite.config.ts
 │   ├── package.json
 │   └── src/
-│       ├── App.jsx
-│       ├── App.css
+│       ├── App.tsx
+│       ├── api.ts               # calls the FastAPI backend
 │       ├── index.css
-│       └── main.jsx
+│       ├── main.tsx
+│       └── components/          # Analyzer, Explanation, Layout
 ├── knowledge_base/
 │   ├── download_papers.py       # download research papers
 │   ├── build_knowledge_base.py  # chunk, embed, build FAISS index
